@@ -1,0 +1,970 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bagas Haidar Arhab — Interactive Portfolio</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{width:100%;height:100%;background:#0a0f0a;overflow:hidden}
+  body{color:#00ff41;font-family:'Share Tech Mono',monospace}
+  canvas{display:block}
+  #world{position:relative;width:100%;height:100vh;overflow:hidden;background:#0a0f0a}
+  #gameCanvas{display:block;width:100%;height:100%}
+  #hud{position:absolute;top:0;left:0;width:100%;display:flex;justify-content:space-between;align-items:center;padding:16px 32px;background:rgba(0,0,0,0.92);border-bottom:2px solid #00ff41;font-family:'Press Start 2P',monospace;font-size:14px;color:#00ff41;z-index:10;pointer-events:none;letter-spacing:1px;}
+  .blink{animation:blink 1s step-end infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
+  #controls{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);font-family:'Press Start 2P',monospace;font-size:9px;color:#00ff41;opacity:0.5;pointer-events:none;white-space:nowrap;animation:pulse 3s ease-in-out infinite;}
+  @keyframes pulse{0%,100%{opacity:0.2}50%{opacity:0.6}}
+  #panel{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);width:min(860px,96vw);background:#000d00;border:2px solid #00ff41;z-index:100;font-family:'Share Tech Mono',monospace;display:none;box-shadow:0 0 60px rgba(0,255,65,0.25);}
+  #panel.active{display:block}
+  #panelHeader{background:#00ff41;color:#000;padding:16px 28px;display:flex;justify-content:space-between;align-items:center;font-family:'Press Start 2P',monospace;font-size:12px;}
+  #panelClose{background:#000;border:none;font-family:'Press Start 2P',monospace;font-size:11px;cursor:pointer;color:#00ff41;padding:8px 14px;}
+  #panelClose:hover{background:#003300}
+  #panelBody{padding:32px 36px;max-height:78vh;overflow-y:auto;}
+  #panelBody::-webkit-scrollbar{width:8px}
+  #panelBody::-webkit-scrollbar-track{background:#000}
+  #panelBody::-webkit-scrollbar-thumb{background:#00ff41}
+  .data-line{display:flex;gap:12px;margin:8px 0;font-size:15px;line-height:1.8}
+  .data-key{color:#00aaff;min-width:160px;flex-shrink:0}
+  .data-val{color:#00ff41}
+  .section-title{color:#ffcc00;font-family:'Press Start 2P',monospace;font-size:9px;margin:22px 0 14px;border-bottom:1px solid #222;padding-bottom:8px;}
+  .section-title:first-child{margin-top:4px}
+  .skill-bar{display:flex;align-items:center;gap:14px;margin:8px 0}
+  .skill-name{color:#aaffaa;font-size:14px;min-width:150px;flex-shrink:0}
+  .skill-track{flex:1;height:14px;background:#111;border:1px solid #222;overflow:hidden;position:relative}
+  .skill-fill{height:100%;background:#00ff41;animation:fillBar 0.8s ease-out;}
+  .skill-fill.mid{background:#ffcc00}
+  .skill-level{color:#555;font-size:11px;min-width:100px;text-align:right;flex-shrink:0}
+  @keyframes fillBar{from{width:0!important}}
+  .proj-card{border:1px solid #003300;background:#001500;padding:18px;margin:12px 0;font-size:14px;}
+  .proj-card:hover{border-color:#00ff41}
+  .proj-title{color:#ffcc00;font-family:'Press Start 2P',monospace;font-size:10px;margin-bottom:10px}
+  .proj-sub{color:#888;font-size:13px;margin-bottom:6px}
+  .proj-date{color:#ffcc00;font-size:13px;margin-bottom:10px}
+  .proj-desc{color:#aaa;line-height:1.8;font-size:13px}
+  .proj-tech{display:flex;flex-wrap:wrap;gap:7px;margin-top:12px}
+  .tag{background:#003300;color:#00ff41;font-size:11px;padding:5px 12px;border:1px solid #00aa33;}
+  .cert-item{border-left:3px solid #00ff41;padding:12px 18px;margin:12px 0;}
+  .cert-name{color:#ffcc00;font-size:15px;margin-bottom:4px}
+  .cert-sub{color:#00aaff;font-size:13px;margin-bottom:4px}
+  .cert-date{color:#555;font-size:13px}
+  .contact-item{display:flex;gap:16px;margin:12px 0;font-size:15px;align-items:center}
+  .contact-icon{color:#00ff41;width:24px;text-align:center;flex-shrink:0;font-size:18px}
+  #overlay{position:fixed;inset:0;background:#000;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Press Start 2P',monospace;gap:28px;cursor:pointer;}
+  #overlay::before{content:'';position:absolute;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,255,65,0.025) 2px,rgba(0,255,65,0.025) 4px);pointer-events:none;}
+  .overlay-logo{font-size:clamp(14px,3vw,26px);color:#00ff41;text-align:center;line-height:2.2;text-shadow:0 0 20px rgba(0,255,65,0.4);}
+  .overlay-sub{font-size:clamp(8px,1.5vw,12px);color:#888;text-align:center;line-height:2}
+  .overlay-start{font-size:clamp(8px,1.5vw,11px);color:#ffcc00;animation:blink 1s step-end infinite}
+  .overlay-ver{font-size:7px;color:#333;position:absolute;bottom:20px}
+  #mobileControls{position:absolute;bottom:72px;left:0;right:0;display:none;justify-content:space-between;padding:0 20px;z-index:10;pointer-events:all;}
+  @media(max-width:768px){#mobileControls{display:flex}}
+  .mBtn{background:rgba(0,255,65,0.1);border:1px solid #00ff41;color:#00ff41;font-family:'Press Start 2P',monospace;font-size:10px;padding:14px 24px;cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;}
+  .mBtn:active{background:rgba(0,255,65,0.3)}
+  #mJump{position:absolute;bottom:72px;right:20px;display:none;background:rgba(0,255,65,0.1);border:1px solid #ffcc00;color:#ffcc00;font-family:'Press Start 2P',monospace;font-size:9px;padding:14px 18px;cursor:pointer;user-select:none;touch-action:manipulation;z-index:10;}
+  @media(max-width:768px){#mJump{display:block}}
+</style>
+</head>
+<body>
+<div id="overlay">
+  <div class="overlay-logo">&gt; BAGAS.EXE<br>LOADING PORTFOLIO...</div>
+  <div class="overlay-sub">INFORMATICS ENGINEER<br>EC-COUNCIL CERTIFIED // JAKARTA, INDONESIA</div>
+  <div class="overlay-start">&gt;&gt; CLICK TO START &lt;&lt;</div>
+  <div class="overlay-ver">v3.0.0 // 2025 EDITION</div>
+</div>
+<div id="world">
+  <div id="hud">
+    <span>BAGAS HAIDAR ARHAB</span>
+    <span class="blink">&#9679; AVAILABLE</span>
+    <span id="hudSection">MOVE TO EXPLORE</span>
+  </div>
+  <canvas id="gameCanvas"></canvas>
+  <div id="controls">&#8592; &#8594; MOVE &nbsp;|&nbsp; &#8593; / SPACE JUMP &nbsp;|&nbsp; ENTER / CLICK INTERACT</div>
+  <div id="mobileControls">
+    <button class="mBtn" id="mLeft">&#9664; LEFT</button>
+    <button class="mBtn" id="mRight">RIGHT &#9654;</button>
+  </div>
+  <button id="mJump">JUMP &#9650;</button>
+</div>
+<div id="panel">
+  <div id="panelHeader">
+    <span id="panelTitle">LOADING...</span>
+    <button id="panelClose" onclick="closePanel()">[ ESC ]</button>
+  </div>
+  <div id="panelBody"></div>
+</div>
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+
+const TILE = 60;
+const HUD_H = 56;
+const GROUND_ROW = 8;
+const worldWidth = 105;
+
+let W, H, camX = 0, targetCamX = 0;
+let panelOpen = false, frameCount = 0;
+let particles = [];
+let keys = {};
+
+let player = { x:2.5, y:GROUND_ROW, vx:0, vy:0, onGround:true, dir:1, frame:0, frameTimer:0 };
+
+const sections = [
+  {x:6,  label:'ABOUT ME',   color:'#00ff41', icon:'[?]', data:'about'},
+  {x:21, label:'SKILLS',     color:'#00aaff', icon:'[S]', data:'skills'},
+  {x:36, label:'EXPERIENCE', color:'#ffcc00', icon:'[E]', data:'experience'},
+  {x:51, label:'PROJECTS',   color:'#ff6600', icon:'[P]', data:'projects'},
+  {x:66, label:'CERTS',      color:'#ff00ff', icon:'[C]', data:'certs'},
+  {x:81, label:'CONTACT',    color:'#aaffaa', icon:'[@]', data:'contact'},
+];
+
+const platforms = [
+  {x:4,y:GROUND_ROW-3,w:3},{x:9,y:GROUND_ROW-2,w:3},{x:14,y:GROUND_ROW-4,w:3},
+  {x:19,y:GROUND_ROW-3,w:3},{x:25,y:GROUND_ROW-2,w:3},{x:30,y:GROUND_ROW-4,w:3},
+  {x:34,y:GROUND_ROW-3,w:3},{x:39,y:GROUND_ROW-2,w:3},{x:44,y:GROUND_ROW-4,w:3},
+  {x:49,y:GROUND_ROW-3,w:3},{x:55,y:GROUND_ROW-2,w:3},{x:60,y:GROUND_ROW-4,w:3},
+  {x:64,y:GROUND_ROW-3,w:3},{x:69,y:GROUND_ROW-2,w:3},{x:74,y:GROUND_ROW-4,w:3},
+  {x:79,y:GROUND_ROW-3,w:3},{x:85,y:GROUND_ROW-2,w:3},{x:90,y:GROUND_ROW-4,w:3},
+];
+
+const trees = [3,8,13,18,24,29,33,38,43,48,54,59,63,68,73,78,84,89,94,99];
+
+const bits = Array.from({length:320}, (_,i) => ({
+  x: Math.random()*worldWidth*TILE,
+  y: HUD_H + Math.random()*(GROUND_ROW-1.2)*TILE,
+  sz: i<140?1 : i<240?2 : i<290?3 : 4,
+  phase: Math.random()*Math.PI*2,
+  spd: 0.015+Math.random()*0.055,
+  bright: i<140?0.4 : i<240?0.65 : i<290?0.85 : 1.0,
+  color: i%11===0?'170,255,255' : i%8===0?'255,255,160' : '0,255,65'
+}));
+
+// Shooting stars
+const shootingStars = [];
+let shootTimer = 0;
+
+function spawnShootingStar(){
+  const worldPx = worldWidth * TILE;
+  shootingStars.push({
+    wx: Math.random() * worldPx,
+    y: HUD_H + 10 + Math.random() * (GROUND_ROW - 2) * TILE * 0.45,
+    len: 90 + Math.random() * 130,
+    spd: 16 + Math.random() * 12,
+    angle: Math.PI/5 + Math.random() * Math.PI/7,
+    life: 1.0,
+    decay: 0.018 + Math.random() * 0.02,
+    col: Math.random() > 0.35 ? '0,255,65' : Math.random() > 0.5 ? '170,255,255' : '255,255,180'
+  });
+}
+
+// UFOs
+const ufos = [];
+let ufoTimer = 0;
+
+function spawnUFO(){
+  const worldPx = worldWidth * TILE;
+  const fromRight = Math.random() > 0.5;
+  const w = 52 + Math.random() * 32;
+  ufos.push({
+    wx: fromRight ? worldPx + 200 : -200,
+    y: HUD_H + 24 + Math.random() * (GROUND_ROW - 3) * TILE * 0.48,
+    spd: (2.8 + Math.random() * 2.4) * (fromRight ? -1 : 1),
+    w,
+    phase: Math.random() * Math.PI * 2,
+    beamT: 0,
+    col: Math.random() > 0.5 ? '0,255,65' : '120,200,255',
+    dead: false
+  });
+}
+
+function resize(){ W=window.innerWidth; H=window.innerHeight; canvas.width=W; canvas.height=H; }
+function ty2py(ty){ return HUD_H+ty*TILE; }
+function groundPY(){ return ty2py(GROUND_ROW); }
+
+function getNear(){
+  let best=null,minD=999;
+  for(let s of sections){const d=Math.abs(player.x-s.x);if(d<minD){minD=d;best=s;}}
+  return minD<2.5?best:null;
+}
+
+function spawnFX(wx,wy,color){
+  const px=wx*TILE-camX, py=ty2py(wy);
+  for(let i=0;i<12;i++) particles.push({x:px,y:py,vx:(Math.random()-0.5)*6,vy:-Math.random()*5-2,life:50,max:50,color,sz:Math.random()*4+1});
+}
+
+/* ======== TOWER BACKGROUNDS ======== */
+
+// ABOUT ME — pixel portrait / person silhouette + ID card elements
+function drawBgAbout(sx, gy, T, alpha){
+  ctx.save(); ctx.globalAlpha=alpha;
+  // face silhouette (pixel art)
+  const cx=sx, cy=gy-T*2.5;
+  ctx.fillStyle='#003300';
+  // head
+  ctx.fillRect(cx-T*.28,cy-T*.9,T*.56,T*.6);
+  // eyes
+  ctx.fillStyle='#00ff41';
+  ctx.fillRect(cx-T*.18,cy-T*.72,T*.1,T*.1);
+  ctx.fillRect(cx+T*.08,cy-T*.72,T*.1,T*.1);
+  // body
+  ctx.fillStyle='#002200';
+  ctx.fillRect(cx-T*.32,cy-T*.3,T*.64,T*.5);
+  // arms
+  ctx.fillRect(cx-T*.52,cy-T*.26,T*.22,T*.38);
+  ctx.fillRect(cx+T*.3,cy-T*.26,T*.22,T*.38);
+  // ID card lines
+  ctx.fillStyle='#00aa33';
+  ctx.fillRect(cx-T*.45,gy-T*1.2,T*.9,T*.06);
+  ctx.fillRect(cx-T*.45,gy-T*1.0,T*.6,T*.06);
+  ctx.fillRect(cx-T*.45,gy-T*0.8,T*.7,T*.06);
+  // location pin
+  ctx.fillStyle='#00ff41';
+  ctx.beginPath(); ctx.arc(sx-T*.7,gy-T*3.2,T*.1,0,Math.PI*2); ctx.fill();
+  ctx.fillRect(sx-T*.72,gy-T*3.2,T*.04,T*.3);
+  ctx.restore();
+}
+
+// SKILLS — radar chart / skill bars pixel style
+function drawBgSkills(sx, gy, T, alpha, t){
+  ctx.save(); ctx.globalAlpha=alpha;
+  const cx=sx, cy=gy-T*2.2;
+  const r=T*.7;
+  // radar hexagon
+  ctx.strokeStyle='#003388'; ctx.lineWidth=1;
+  for(let ring=1;ring<=3;ring++){
+    ctx.beginPath();
+    for(let i=0;i<6;i++){
+      const a=i*Math.PI/3-Math.PI/2;
+      const rx=cx+r*(ring/3)*Math.cos(a);
+      const ry=cy+r*(ring/3)*Math.sin(a);
+      i===0?ctx.moveTo(rx,ry):ctx.lineTo(rx,ry);
+    }
+    ctx.closePath(); ctx.stroke();
+  }
+  // axes
+  for(let i=0;i<6;i++){
+    const a=i*Math.PI/3-Math.PI/2;
+    ctx.strokeStyle='#002255'; ctx.lineWidth=0.8;
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.lineTo(cx+r*Math.cos(a),cy+r*Math.sin(a)); ctx.stroke();
+  }
+  // filled radar — skills
+  const skills=[0.9,0.8,0.75,0.8,0.75,0.7];
+  ctx.beginPath();
+  for(let i=0;i<6;i++){
+    const a=i*Math.PI/3-Math.PI/2;
+    const rx=cx+r*skills[i]*Math.cos(a);
+    const ry=cy+r*skills[i]*Math.sin(a);
+    i===0?ctx.moveTo(rx,ry):ctx.lineTo(rx,ry);
+  }
+  ctx.closePath();
+  ctx.fillStyle='rgba(0,100,200,0.25)'; ctx.fill();
+  ctx.strokeStyle='#0066ff'; ctx.lineWidth=1.5; ctx.stroke();
+  // dots on vertices
+  for(let i=0;i<6;i++){
+    const a=i*Math.PI/3-Math.PI/2+Math.sin(t*0.04)*0.05;
+    const rx=cx+r*skills[i]*Math.cos(a);
+    const ry=cy+r*skills[i]*Math.sin(a);
+    ctx.fillStyle='#00aaff';
+    ctx.beginPath(); ctx.arc(rx,ry,3,0,Math.PI*2); ctx.fill();
+  }
+  ctx.restore();
+}
+
+// EXPERIENCE — office desk / computer monitor pixel art
+function drawBgExperience(sx, gy, T, alpha){
+  ctx.save(); ctx.globalAlpha=alpha;
+  const cx=sx, top=gy-T*3.6;
+  // monitor frame
+  ctx.fillStyle='#332200';
+  ctx.fillRect(cx-T*.5,top,T,T*.75);
+  // screen
+  ctx.fillStyle='#1a0d00';
+  ctx.fillRect(cx-T*.44,top+T*.06,T*.88,T*.58);
+  // screen content lines (code)
+  const lineColors=['#ffaa00','#ffcc44','#ff8800','#ffaa00','#ffcc44'];
+  for(let i=0;i<5;i++){
+    ctx.fillStyle=lineColors[i];
+    ctx.fillRect(cx-T*.38,top+T*.12+i*T*.09,T*.5*(0.5+Math.random()*0.4),T*.05);
+  }
+  // stand
+  ctx.fillStyle='#221100';
+  ctx.fillRect(cx-T*.08,top+T*.75,T*.16,T*.22);
+  ctx.fillRect(cx-T*.24,top+T*.95,T*.48,T*.07);
+  // keyboard pixel
+  ctx.fillStyle='#1a0d00';
+  ctx.fillRect(cx-T*.36,top+T*1.1,T*.72,T*.2);
+  ctx.fillStyle='#332200';
+  for(let col=0;col<6;col++) for(let row=0;row<2;row++){
+    ctx.fillRect(cx-T*.32+col*T*.11,top+T*1.13+row*T*.08,T*.08,T*.05);
+  }
+  // calendar on wall
+  ctx.fillStyle='#2a1500';
+  ctx.fillRect(cx+T*.6,top-T*.1,T*.38,T*.4);
+  ctx.fillStyle='#ffcc00';
+  ctx.fillRect(cx+T*.6,top-T*.1,T*.38,T*.1);
+  ctx.fillStyle='#664400';
+  for(let r=0;r<3;r++) for(let c=0;c<3;c++){
+    ctx.fillRect(cx+T*.63+c*T*.1,top+T*.05+r*T*.1,T*.07,T*.07);
+  }
+  ctx.restore();
+}
+
+// PROJECTS — code terminal / matrix rain style
+function drawBgProjects(sx, gy, T, alpha, t){
+  ctx.save(); ctx.globalAlpha=alpha;
+  const cx=sx, top=gy-T*3.8;
+  // terminal window
+  ctx.fillStyle='#0a1500';
+  ctx.fillRect(cx-T*.56,top,T*1.12,T*.9);
+  ctx.strokeStyle='#ff6600'; ctx.lineWidth=1.5;
+  ctx.strokeRect(cx-T*.56,top,T*1.12,T*.9);
+  // title bar
+  ctx.fillStyle='#1a0a00';
+  ctx.fillRect(cx-T*.56,top,T*1.12,T*.12);
+  ctx.fillStyle='#ff6600';
+  ctx.fillRect(cx-T*.52,top+T*.03,T*.06,T*.06);
+  ctx.fillStyle='#ffaa00';
+  ctx.fillRect(cx-T*.44,top+T*.03,T*.06,T*.06);
+  ctx.fillStyle='#00aa00';
+  ctx.fillRect(cx-T*.36,top+T*.03,T*.06,T*.06);
+  // code lines with animation
+  const codeLines=['> python bot.py','  login()...','  session OK','> requests.get','  200 response','  queue: #0042'];
+  ctx.font=`${Math.round(T*.07)}px "Share Tech Mono"`;
+  for(let i=0;i<6;i++){
+    const blink=i===5&&Math.floor(t/20)%2===0;
+    ctx.fillStyle=i===0?'#ff8800':i===2||i===4?'#00ff41':'#888888';
+    if(!blink) ctx.fillText(codeLines[i],cx-T*.5,top+T*.22+i*T*.12);
+  }
+  // blinking cursor
+  if(Math.floor(t/15)%2===0){
+    ctx.fillStyle='#ff6600';
+    ctx.fillRect(cx-T*.5+T*.64,top+T*.72,T*.06,T*.1);
+  }
+  // snake/gear icon below
+  ctx.strokeStyle='#ff6600'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.arc(cx,gy-T*.7,T*.18,0,Math.PI*2); ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx,gy-T*.7,T*.1,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+// CERTS — shield + badge pixel art
+function drawBgCerts(sx, gy, T, alpha, t){
+  ctx.save(); ctx.globalAlpha=alpha;
+  const cx=sx, cy=gy-T*2.5;
+  // main shield
+  ctx.fillStyle='#1a0033';
+  ctx.beginPath();
+  ctx.moveTo(cx-T*.45,cy-T*.8);
+  ctx.lineTo(cx+T*.45,cy-T*.8);
+  ctx.lineTo(cx+T*.45,cy+T*.1);
+  ctx.quadraticCurveTo(cx+T*.45,cy+T*.5,cx,cy+T*.72);
+  ctx.quadraticCurveTo(cx-T*.45,cy+T*.5,cx-T*.45,cy+T*.1);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle='#cc00ff'; ctx.lineWidth=2; ctx.stroke();
+  // inner shield
+  ctx.fillStyle='#2a0044';
+  ctx.beginPath();
+  ctx.moveTo(cx-T*.32,cy-T*.65);
+  ctx.lineTo(cx+T*.32,cy-T*.65);
+  ctx.lineTo(cx+T*.32,cy+T*.08);
+  ctx.quadraticCurveTo(cx+T*.3,cy+T*.38,cx,cy+T*.56);
+  ctx.quadraticCurveTo(cx-T*.3,cy+T*.38,cx-T*.32,cy+T*.08);
+  ctx.closePath(); ctx.fill();
+  // EC-Council logo mark (E+C)
+  ctx.fillStyle='#ff00ff';
+  ctx.font=`bold ${Math.round(T*.22)}px "Press Start 2P"`;
+  ctx.textAlign='center';
+  ctx.fillText('EC',cx,cy+T*.05);
+  // star burst around shield pulse
+  const pulse=0.8+0.2*Math.sin(t*0.08);
+  ctx.strokeStyle=`rgba(200,0,255,${0.3*pulse})`;
+  ctx.lineWidth=1;
+  for(let i=0;i<8;i++){
+    const a=i*Math.PI/4+t*0.02;
+    ctx.beginPath();
+    ctx.moveTo(cx+T*.52*Math.cos(a),cy+T*.52*Math.sin(a)-T*.05);
+    ctx.lineTo(cx+T*.72*Math.cos(a),cy+T*.72*Math.sin(a)-T*.05);
+    ctx.stroke();
+  }
+  // BNSP badge (small, bottom)
+  ctx.fillStyle='#001133';
+  ctx.beginPath(); ctx.arc(cx,gy-T*.5,T*.2,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#0088ff'; ctx.lineWidth=1.5; ctx.stroke();
+  ctx.fillStyle='#00aaff';
+  ctx.font=`${Math.round(T*.1)}px "Press Start 2P"`;
+  ctx.fillText('BNSP',cx,gy-T*.46);
+  ctx.restore();
+}
+
+// CONTACT — signal tower / wifi / envelope pixel art
+function drawBgContact(sx, gy, T, alpha, t){
+  ctx.save(); ctx.globalAlpha=alpha;
+  const cx=sx;
+  // signal waves emanating from center
+  const pulse=Math.floor(t/20)%4;
+  const waveColors=['rgba(170,255,170,0.5)','rgba(170,255,170,0.35)','rgba(170,255,170,0.2)','rgba(170,255,170,0.1)'];
+  for(let w=0;w<4;w++){
+    const r=T*(0.3+(w+pulse*0.25)*0.28);
+    ctx.strokeStyle=waveColors[w]; ctx.lineWidth=1.5;
+    ctx.beginPath();
+    ctx.arc(cx,gy-T*2.5,r,Math.PI*1.1,Math.PI*1.9);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.arc(cx,gy-T*2.5,r,Math.PI*1.1+Math.PI,Math.PI*1.9+Math.PI);
+    ctx.stroke();
+  }
+  // envelope pixel art
+  const ex=cx, ey=gy-T*2.5;
+  ctx.fillStyle='#002200';
+  ctx.fillRect(ex-T*.4,ey-T*.22,T*.8,T*.5);
+  ctx.strokeStyle='#aaffaa'; ctx.lineWidth=1;
+  ctx.strokeRect(ex-T*.4,ey-T*.22,T*.8,T*.5);
+  // envelope flap
+  ctx.beginPath();
+  ctx.moveTo(ex-T*.4,ey-T*.22);
+  ctx.lineTo(ex,ey+T*.04);
+  ctx.lineTo(ex+T*.4,ey-T*.22);
+  ctx.strokeStyle='#aaffaa'; ctx.lineWidth=1; ctx.stroke();
+  // @ symbol
+  ctx.fillStyle='#aaffaa';
+  ctx.font=`${Math.round(T*.2)}px "Share Tech Mono"`;
+  ctx.textAlign='center';
+  ctx.fillText('@',ex,ey+T*.2);
+  // location pin
+  ctx.fillStyle='#00ff88';
+  ctx.beginPath(); ctx.arc(cx-T*.7,gy-T*3.2,T*.1,0,Math.PI*2); ctx.fill();
+  ctx.fillRect(cx-T*.72,gy-T*3.2,T*.04,T*.3);
+  // phone icon
+  ctx.strokeStyle='#aaffaa'; ctx.lineWidth=1.5;
+  ctx.strokeRect(cx+T*.55,gy-T*3.0,T*.22,T*.38);
+  ctx.fillStyle='#aaffaa';
+  ctx.beginPath(); ctx.arc(cx+T*.66,gy-T*2.7,T*.04,0,Math.PI*2); ctx.fill();
+  ctx.restore();
+}
+
+/* ======== MAIN DRAW FUNCTIONS ======== */
+
+function drawBg(){
+  ctx.fillStyle='#050a05'; ctx.fillRect(0,0,W,H);
+  ctx.strokeStyle='rgba(0,255,65,0.035)'; ctx.lineWidth=1;
+  const ox=camX%TILE;
+  for(let x=-ox;x<W+TILE;x+=TILE){ctx.beginPath();ctx.moveTo(x,HUD_H);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=HUD_H;y<H;y+=TILE){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  for(let y=0;y<H;y+=3){ctx.fillStyle='rgba(0,0,0,0.09)';ctx.fillRect(0,y,W,1);}
+}
+
+function drawBits(t){
+  for(let b of bits){
+    const bx=b.x-camX;
+    if(bx<-8||bx>W+8) continue;
+    const wave=Math.sin(t*b.spd+b.phase);
+    const a=b.bright*(0.4+0.6*((wave+1)/2));
+    ctx.fillStyle=`rgba(${b.color},${a})`;
+    ctx.fillRect(bx,b.y,b.sz,b.sz);
+    if(b.sz>=3 && a>0.6){
+      const ga=a*0.35;
+      ctx.fillStyle=`rgba(${b.color},${ga})`;
+      ctx.fillRect(bx-2,b.y+Math.floor(b.sz/2),b.sz+4,1);
+      ctx.fillRect(bx+Math.floor(b.sz/2),b.y-2,1,b.sz+4);
+    }
+  }
+}
+
+function updateAndDrawShootingStars(){
+  // spawn
+  shootTimer++;
+  if(shootTimer > 90 + Math.random()*80){
+    spawnShootingStar();
+    if(Math.random()>0.55) spawnShootingStar(); // occasionally double
+    shootTimer=0;
+  }
+  for(let i=shootingStars.length-1;i>=0;i--){
+    const s=shootingStars[i];
+    // move in world space
+    s.wx += Math.cos(s.angle) * s.spd;
+    s.y  += Math.sin(s.angle) * s.spd;
+    s.life -= s.decay;
+    if(s.life<=0 || s.y>groundPY()-20){ shootingStars.splice(i,1); continue; }
+    const sx = s.wx - camX;
+    if(sx < -s.len-20 || sx > W+s.len+20) continue;
+    // draw tail gradient
+    const tailX = sx - Math.cos(s.angle)*s.len;
+    const tailY = s.y - Math.sin(s.angle)*s.len;
+    const grad = ctx.createLinearGradient(tailX, tailY, sx, s.y);
+    grad.addColorStop(0, `rgba(${s.col},0)`);
+    grad.addColorStop(0.6, `rgba(${s.col},${s.life*0.5})`);
+    grad.addColorStop(1, `rgba(${s.col},${s.life})`);
+    ctx.beginPath();
+    ctx.moveTo(tailX, tailY);
+    ctx.lineTo(sx, s.y);
+    ctx.strokeStyle = grad;
+    ctx.lineWidth = 2.5 * s.life;
+    ctx.stroke();
+    // bright head dot
+    ctx.fillStyle=`rgba(${s.col},${s.life})`;
+    ctx.beginPath(); ctx.arc(sx, s.y, 2.5*s.life, 0, Math.PI*2); ctx.fill();
+  }
+}
+
+function updateAndDrawUFOs(t){
+  ufoTimer++;
+  if(ufoTimer > 320 + Math.random()*300){
+    spawnUFO();
+    ufoTimer=0;
+  }
+  for(let i=ufos.length-1;i>=0;i--){
+    const u=ufos[i];
+    u.wx += u.spd;
+    u.beamT++;
+    // remove when off world
+    if((u.spd>0 && u.wx > worldWidth*TILE+300) || (u.spd<0 && u.wx < -300)){
+      ufos.splice(i,1); continue;
+    }
+    const sx = u.wx - camX;
+    if(sx < -u.w*2-20 || sx > W+u.w*2+20) continue;
+
+    const hover = Math.sin(t*0.04 + u.phase) * 5; // vertical hover
+    const uy = u.y + hover;
+    const hw = u.w;
+    const beamOn = u.beamT%180 < 60; // beam flashes periodically
+    const lightPulse = 0.5 + 0.5*Math.sin(t*0.15+u.phase);
+
+    ctx.save();
+    ctx.translate(sx, uy);
+    if(u.spd > 0) ctx.scale(-1,1); // flip direction
+
+    // beam below UFO
+    if(beamOn){
+      const beamAlpha = 0.12 + 0.1*Math.sin(t*0.2);
+      const bGrad = ctx.createLinearGradient(0,0,0,60);
+      bGrad.addColorStop(0, `rgba(${u.col},${beamAlpha*2})`);
+      bGrad.addColorStop(1, `rgba(${u.col},0)`);
+      ctx.beginPath();
+      ctx.moveTo(-hw*0.25, hw*0.18);
+      ctx.lineTo(-hw*0.55, 65);
+      ctx.lineTo( hw*0.55, 65);
+      ctx.lineTo( hw*0.25, hw*0.18);
+      ctx.closePath();
+      ctx.fillStyle=bGrad; ctx.fill();
+    }
+
+    // body — dome top
+    ctx.fillStyle=`rgba(${u.col},0.12)`;
+    ctx.beginPath(); ctx.ellipse(0,-hw*0.22,hw*0.38,hw*0.28,0,Math.PI,0); ctx.fill();
+    ctx.strokeStyle=`rgba(${u.col},0.7)`; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.ellipse(0,-hw*0.22,hw*0.38,hw*0.28,0,Math.PI,0); ctx.stroke();
+
+    // main saucer disc
+    ctx.fillStyle=`rgba(${u.col},0.18)`;
+    ctx.beginPath(); ctx.ellipse(0,0,hw*0.5,hw*0.18,0,0,Math.PI*2); ctx.fill();
+    ctx.strokeStyle=`rgba(${u.col},0.85)`; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.ellipse(0,0,hw*0.5,hw*0.18,0,0,Math.PI*2); ctx.stroke();
+
+    // inner ring
+    ctx.strokeStyle=`rgba(${u.col},0.4)`; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.ellipse(0,0,hw*0.28,hw*0.1,0,0,Math.PI*2); ctx.stroke();
+
+    // running lights (pixel dots)
+    const numLights=5;
+    for(let l=0;l<numLights;l++){
+      const la = (l/numLights)*Math.PI*2 + t*0.06;
+      const lx = Math.cos(la)*hw*0.36;
+      const ly = Math.sin(la)*hw*0.13;
+      const lAlpha = 0.4+0.6*((l+Math.floor(t*0.1))%numLights===0?lightPulse:0.3);
+      ctx.fillStyle=`rgba(${u.col},${lAlpha})`;
+      ctx.beginPath(); ctx.arc(lx,ly,2.5,0,Math.PI*2); ctx.fill();
+    }
+
+    // engine glow underneath
+    ctx.fillStyle=`rgba(${u.col},${0.2+0.15*lightPulse})`;
+    ctx.beginPath(); ctx.ellipse(0,hw*0.1,hw*0.18,hw*0.07,0,0,Math.PI*2); ctx.fill();
+
+    ctx.restore();
+  }
+}
+
+function drawTree(tx){
+  const x=tx*TILE-camX;
+  if(x<-TILE*4||x>W+TILE*3) return;
+  const gy=groundPY(); const T=TILE;
+  ctx.fillStyle='#1a3300'; ctx.fillRect(x+T*.36,gy-T*1.5,T*.28,T*1.5);
+  ctx.fillStyle='#0d1a00'; ctx.fillRect(x+T*.43,gy-T*1.4,T*.14,T*1.4);
+  ctx.fillStyle='#003300'; ctx.fillRect(x+T*.04,gy-T*2.7,T*.92,T*1.2);
+  ctx.fillStyle='#004400'; ctx.fillRect(x+T*.14,gy-T*3.4,T*.72,T*.85);
+  ctx.fillStyle='#005500'; ctx.fillRect(x+T*.24,gy-T*4.0,T*.52,T*.7);
+  ctx.fillStyle='#006600'; ctx.fillRect(x+T*.34,gy-T*4.5,T*.32,T*.55);
+  ctx.fillStyle='#007700';
+  ctx.fillRect(x+T*.14,gy-T*2.8,T*.2,T*.2);
+  ctx.fillRect(x+T*.64,gy-T*3.0,T*.16,T*.16);
+}
+
+function drawGround(){
+  const gy=groundPY(); const off=Math.floor(camX/TILE);
+  for(let i=off-1;i<off+Math.ceil(W/TILE)+2;i++){
+    const gx=i*TILE-camX;
+    ctx.fillStyle='#0d1a0d'; ctx.fillRect(gx,gy,TILE,TILE);
+    ctx.fillStyle='#00aa33'; ctx.fillRect(gx,gy,TILE,5);
+    ctx.fillStyle='#007722'; ctx.fillRect(gx,gy+5,TILE,7);
+    ctx.fillStyle='#0a150a'; ctx.fillRect(gx+4,gy+14,TILE-8,TILE-16);
+    ctx.fillStyle='#1a2a1a';
+    ctx.fillRect(gx+5,gy+18,7,7); ctx.fillRect(gx+TILE-14,gy+24,7,7);
+    ctx.strokeStyle='#002200'; ctx.lineWidth=0.5; ctx.strokeRect(gx,gy,TILE,TILE);
+    ctx.fillStyle='#060d06'; ctx.fillRect(gx,gy+TILE,TILE,H);
+  }
+}
+
+function drawPlatform(p){
+  const px=p.x*TILE-camX;
+  if(px<-p.w*TILE-TILE||px>W+TILE) return;
+  const py=ty2py(p.y),pw=p.w*TILE,ph=TILE*0.4;
+  ctx.fillStyle='#0d1a0d'; ctx.fillRect(px,py,pw,ph);
+  ctx.fillStyle='#00aa33'; ctx.fillRect(px,py,pw,5);
+  ctx.fillStyle='#007722'; ctx.fillRect(px,py+5,pw,7);
+  ctx.fillStyle='#0a150a'; ctx.fillRect(px+3,py+14,pw-6,ph-16);
+  for(let i=0;i<p.w;i++){ctx.strokeStyle='#002200';ctx.lineWidth=0.5;ctx.strokeRect(px+i*TILE,py,TILE,ph);}
+}
+
+function drawSection(s, t){
+  const sx=s.x*TILE-camX;
+  if(sx<-TILE*6||sx>W+TILE*6) return;
+  const gy=groundPY();
+  const near=Math.abs(player.x-s.x)<2.8;
+  const T=TILE;
+  const towerW=T*1.7, towerH=T*4.0;
+  const towerLeft=sx-towerW/2, towerTop=gy-towerH;
+
+  // ---- TOWER BODY ----
+  ctx.fillStyle='#040a04';
+  ctx.fillRect(towerLeft, towerTop, towerW, towerH);
+
+  // ---- THEMED BACKGROUND ART ----
+  // clip to tower interior
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(towerLeft+2, towerTop+2, towerW-4, towerH-4);
+  ctx.clip();
+  const bgAlpha = near ? 0.85 : 0.45;
+  if(s.data==='about')      drawBgAbout(sx, gy, T, bgAlpha);
+  if(s.data==='skills')     drawBgSkills(sx, gy, T, bgAlpha, t);
+  if(s.data==='experience') drawBgExperience(sx, gy, T, bgAlpha);
+  if(s.data==='projects')   drawBgProjects(sx, gy, T, bgAlpha, t);
+  if(s.data==='certs')      drawBgCerts(sx, gy, T, bgAlpha, t);
+  if(s.data==='contact')    drawBgContact(sx, gy, T, bgAlpha, t);
+  ctx.restore();
+
+  // ---- TOWER BORDER ----
+  ctx.strokeStyle=near?s.color:'#004400'; ctx.lineWidth=near?2.5:1;
+  ctx.strokeRect(towerLeft, towerTop, towerW, towerH);
+
+  // ---- DOOR ----
+  const doorW=T*.7, doorH=T*1.7;
+  const doorLeft=sx-doorW/2, doorTop=gy-doorH;
+  ctx.fillStyle=near?s.color+'55':'rgba(0,0,0,0.6)';
+  ctx.fillRect(doorLeft, doorTop, doorW, doorH);
+  ctx.strokeStyle=near?s.color:'#003300'; ctx.lineWidth=1.5;
+  ctx.strokeRect(doorLeft, doorTop, doorW, doorH);
+  // door arch
+  ctx.beginPath(); ctx.arc(sx, doorTop, doorW/2, Math.PI, 0, false);
+  ctx.fillStyle=near?s.color+'66':'rgba(0,0,0,0.6)'; ctx.fill();
+  ctx.strokeStyle=near?s.color:'#003300'; ctx.stroke();
+
+  // ---- SIGN BOARD ----
+  ctx.fillStyle='#000d00';
+  ctx.fillRect(sx-T*1.0, gy-T*5.1, T*2.0, T*1.1);
+  ctx.strokeStyle=near?s.color:'#003300'; ctx.lineWidth=near?2:1;
+  ctx.strokeRect(sx-T*1.0, gy-T*5.1, T*2.0, T*1.1);
+  ctx.fillStyle=near?s.color:'#006600';
+  ctx.font=`${Math.round(T*.3)}px "Press Start 2P"`;
+  ctx.textAlign='center';
+  ctx.fillText(s.icon, sx, gy-T*4.22);
+  const lbl=s.label.length>9?s.label.substring(0,9):s.label;
+  ctx.fillStyle=near?'#ffffff':'#555';
+  ctx.font=`${Math.round(T*.18)}px "Press Start 2P"`;
+  ctx.fillText(lbl, sx, gy-T*4.0);
+
+  // ---- ANTENNA ----
+  ctx.strokeStyle=near?s.color:'#003300'; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(sx,gy-T*5.1); ctx.lineTo(sx,gy-T*5.9); ctx.stroke();
+  ctx.fillStyle=near?s.color:'#004400';
+  ctx.beginPath(); ctx.arc(sx,gy-T*5.9,7,0,Math.PI*2); ctx.fill();
+
+  // ---- NEAR PROMPT ----
+  if(near){
+    ctx.fillStyle=s.color+'12';
+    ctx.fillRect(sx-T*1.05, gy-T*6.1, T*2.1, T*6.1);
+    ctx.fillStyle='#ffcc00';
+    ctx.font=`${Math.round(T*.2)}px "Press Start 2P"`;
+    ctx.fillText('[ ENTER ]', sx, gy-T*6.3);
+    document.getElementById('hudSection').textContent='> '+s.label;
+  }
+}
+
+function drawPlayer(){
+  const footY=ty2py(player.y);
+  const cx=player.x*TILE-camX;
+  if(cx<-TILE*2||cx>W+TILE*2) return;
+  ctx.save();
+  ctx.translate(cx, footY);
+  if(player.dir<0) ctx.scale(-1,1);
+  const T=TILE;
+  const walking=(Math.abs(player.vx)>0.3)&&player.onGround;
+  const f=Math.floor(player.frame)%4;
+  const ls=walking?Math.sin(f*Math.PI/2)*7:0;
+  const S=T*0.46;
+  ctx.fillStyle='rgba(0,255,65,0.07)';
+  ctx.beginPath(); ctx.ellipse(0,-1,S*.58,S*.14,0,0,Math.PI*2); ctx.fill();
+  ctx.fillStyle='#00cc33';
+  ctx.fillRect(-S*.56,-S*.3+ls,S*.52,S*.3);
+  ctx.fillRect( S*.04,-S*.3-ls,S*.52,S*.3);
+  ctx.fillStyle='#00ff41';
+  ctx.fillRect(-S*.64,-S*.13+ls,S*.2,S*.13);
+  ctx.fillRect( S*.44,-S*.13-ls,S*.2,S*.13);
+  ctx.fillStyle='#002200';
+  ctx.fillRect(-S*.5,-S*1.0+ls,S*.44,S*.72);
+  ctx.fillRect( S*.06,-S*1.0-ls,S*.44,S*.72);
+  ctx.fillStyle='#004400'; ctx.fillRect(-S*.6,-S*2.1,S*1.2,S*1.15);
+  ctx.fillStyle='#00aa33';
+  ctx.fillRect(-S*.47,-S*2.05,S*.4,S*.85);
+  ctx.fillRect( S*.07,-S*2.05,S*.4,S*.85);
+  ctx.fillStyle='#006600'; ctx.fillRect(-S*.15,-S*2.0,S*.3,S*.68);
+  ctx.fillStyle='#003300';
+  ctx.fillRect(-S*.9,-S*2.05,S*.32,S*.82);
+  ctx.fillRect( S*.58,-S*2.05,S*.32,S*.82);
+  ctx.fillStyle='#00ff41';
+  ctx.fillRect(-S*.96,-S*1.26,S*.4,S*.4);
+  ctx.fillRect( S*.56,-S*1.26,S*.4,S*.4);
+  ctx.fillStyle='#00cc33'; ctx.fillRect(-S*.68,-S*3.2,S*1.36,S*1.15);
+  ctx.fillStyle='#001500'; ctx.fillRect(-S*.55,-S*3.1,S*1.1,S*.65);
+  ctx.fillStyle='#00aaff'; ctx.fillRect(-S*.48,-S*3.06,S*.96,S*.54);
+  ctx.fillStyle='rgba(255,255,255,0.22)'; ctx.fillRect(-S*.4,-S*3.0,S*.32,S*.18);
+  ctx.fillStyle='#005500';
+  ctx.fillRect(-S*.68,-S*2.32,S*.3,S*.15);
+  ctx.fillRect( S*.38,-S*2.32,S*.3,S*.15);
+  ctx.restore();
+}
+
+function drawParticles(){
+  for(let i=particles.length-1;i>=0;i--){
+    const p=particles[i];
+    p.x+=p.vx; p.y+=p.vy; p.vy+=0.2; p.life--;
+    if(p.life<=0){particles.splice(i,1);continue;}
+    ctx.globalAlpha=p.life/p.max;
+    ctx.fillStyle=p.color;
+    ctx.fillRect(p.x,p.y,p.sz,p.sz);
+    ctx.globalAlpha=1;
+  }
+}
+
+/* ---- PANEL DATA ---- */
+const panelData = {
+  about:{title:'> ACCESS: ABOUT.DAT',render(){return`
+    <div class="section-title">// IDENTITY RECORD</div>
+    <div class="data-line"><span class="data-key">NAME:</span><span class="data-val">Bagas Haidar Arhab</span></div>
+    <div class="data-line"><span class="data-key">LOCATION:</span><span class="data-val">Jakarta, Indonesia</span></div>
+    <div class="data-line"><span class="data-key">STATUS:</span><span class="data-val" style="color:#00ff41">&#9679; AVAILABLE FOR WORK</span></div>
+    <div class="data-line"><span class="data-key">DEGREE:</span><span class="data-val">S1 Teknik Informatika</span></div>
+    <div class="data-line"><span class="data-key">UNIVERSITY:</span><span class="data-val">Universitas Mercu Buana</span></div>
+    <div class="data-line"><span class="data-key">GPA:</span><span class="data-val" style="color:#ffcc00">3.68 / 4.00</span></div>
+    <div class="data-line"><span class="data-key">GRADUATED:</span><span class="data-val">December 2025</span></div>
+    <div class="data-line"><span class="data-key">PHONE:</span><span class="data-val">0851-7224-1515</span></div>
+    <div class="data-line"><span class="data-key">EMAIL:</span><span class="data-val">bagashaidar3@gmail.com</span></div>
+    <div class="data-line"><span class="data-key">INSTAGRAM:</span><span class="data-val">@bagas.hdr</span></div>
+    <div class="section-title">// MISSION BRIEF</div>
+    <div style="color:#aaffaa;font-size:12px;line-height:1.9;border-left:2px solid #00ff41;padding-left:12px">
+      Fresh Graduate in Informatics Engineering with a strong interest in IT Support, networking, and cybersecurity.
+      Certified by EC-Council (ECIH &amp; CND). Persistent, sociable fast-learner with hands-on experience in
+      technical support and administrative roles. Ready to contribute as a reliable and adaptable IT professional.
+    </div>
+    <div class="section-title">// TARGET ROLES</div>
+    <div style="display:flex;flex-wrap:wrap;gap:6px">
+      <span class="tag">IT Support</span><span class="tag">Software Engineer</span>
+      <span class="tag">IT QA</span><span class="tag">Cybersecurity</span>
+      <span class="tag">Technical Service</span><span class="tag">Network Defender</span>
+    </div>`;}},
+  skills:{title:'> ACCESS: SKILLS.DAT',render(){
+    const t=[
+      {name:'IT Support',pct:90,level:'EXPERT'},{name:'Python',pct:80,level:'ADVANCED'},
+      {name:'PHP / Laravel',pct:75,level:'ADVANCED'},{name:'HTML / Web Dev',pct:80,level:'ADVANCED'},
+      {name:'Web Automation',pct:80,level:'ADVANCED'},{name:'Cybersecurity',pct:75,level:'ADVANCED'},
+      {name:'Burp Suite',pct:65,level:'INTERMEDIATE'},{name:'Networking',pct:70,level:'INTERMEDIATE'},
+      {name:'Data Analysis',pct:65,level:'INTERMEDIATE'},{name:'UI/UX Design',pct:60,level:'INTERMEDIATE'},
+    ];
+    let h='<div class="section-title">// TECHNICAL SKILLS</div>';
+    for(let s of t) h+=`<div class="skill-bar"><span class="skill-name">${s.name}</span><div class="skill-track"><div class="skill-fill ${s.pct>=80?'':'mid'}" style="width:${s.pct}%"></div></div><span class="skill-level">${s.level}</span></div>`;
+    h+='<div class="section-title">// SOFT SKILLS</div><div style="display:flex;flex-wrap:wrap;gap:6px">';
+    for(let s of ['Problem Solving','Teamwork','Responsibility','Communication','Time Management','Fast Learner']) h+=`<span class="tag">${s}</span>`;
+    return h+'</div>';
+  }},
+  experience:{title:'> ACCESS: WORK_LOG.DAT',render(){return`
+    <div class="section-title">// WORK EXPERIENCE</div>
+    <div class="proj-card">
+      <div class="proj-title">IT SUPPORT</div>
+      <div class="proj-sub">Universitas Mercu Buana — Bureau of Information Technology</div>
+      <div class="proj-date">&#9670; May 2024 — May 2025</div>
+      <div class="proj-desc">&#9658; Handled complaints: monitors, projectors, classroom equipment<br>&#9658; Troubleshot computers &amp; printers across campus bureaus<br>&#9658; Supported daily IT operations for smooth academic activities</div>
+      <div class="proj-tech"><span class="tag">IT Support</span><span class="tag">Troubleshooting</span><span class="tag">Hardware</span></div>
+    </div>
+    <div class="proj-card">
+      <div class="proj-title">ADMINISTRATIVE STAFF ASSISTANT</div>
+      <div class="proj-sub">Universitas Mercu Buana — LPPM</div>
+      <div class="proj-date">&#9670; Feb 2022 — Feb 2023</div>
+      <div class="proj-desc">&#9658; Processed and organized employee &amp; research data reports<br>&#9658; Supported admin documentation and data management tasks</div>
+      <div class="proj-tech"><span class="tag">Data Processing</span><span class="tag">Documentation</span></div>
+    </div>
+    <div class="section-title">// ORGANIZATIONAL</div>
+    <div class="proj-card">
+      <div class="proj-title">VICE CHAIRMAN — HIMTI</div>
+      <div class="proj-sub">Himpunan Mahasiswa Teknik Informatika</div>
+      <div class="proj-date">&#9670; May 2023 — May 2024</div>
+      <div class="proj-desc">&#9658; Assisted Chairman in managing organizational operations<br>&#9658; Coordinated internal teams for effective program execution</div>
+      <div class="proj-tech"><span class="tag">Leadership</span><span class="tag">Coordination</span></div>
+    </div>`;}},
+  projects:{title:'> ACCESS: PROJECTS.EXE',render(){return`
+    <div class="section-title">// PROJECT LOG</div>
+    <div class="proj-card">
+      <div class="proj-title">&#9675; ANTAM QUEUE AUTOMATION BOT</div>
+      <div class="proj-desc" style="margin:8px 0;color:#aaffaa">Automation bot to reserve queue slots on Antam gold reservation website using Python and JavaScript.</div>
+      <div style="color:#888;font-size:11px;line-height:1.8">&#9658; Automated login, session handling &amp; real-time processing<br>&#9658; HTTP request handling + browser automation<br>&#9658; Timing sync for accurate queue slot booking</div>
+      <div class="proj-tech"><span class="tag">Python</span><span class="tag">JavaScript</span><span class="tag">HTTP Requests</span><span class="tag">Web Automation</span></div>
+    </div>
+    <div class="proj-card">
+      <div class="proj-title">&#9675; GMAIL TIMESTAMP MANIPULATION</div>
+      <div class="proj-desc" style="margin:8px 0;color:#aaffaa">Technique to manipulate Gmail timestamps via HTTP interception using Burp Suite proxy.</div>
+      <div style="color:#888;font-size:11px;line-height:1.8">&#9658; Configured Burp Suite with custom CA certificate<br>&#9658; Modified epoch timestamp in Gmail's internal sync API<br>&#9658; Successfully altered sent timestamp to custom past date</div>
+      <div class="proj-tech"><span class="tag">Burp Suite</span><span class="tag">HTTP Interception</span><span class="tag">Proxy Config</span><span class="tag">SwitchyOmega</span></div>
+    </div>`;}},
+  certs:{title:'> ACCESS: CERTS.KEY',render(){return`
+    <div class="section-title">// CERTIFICATIONS</div>
+    <div class="cert-item"><div class="cert-name">EC-COUNCIL CERTIFIED INCIDENT HANDLER</div><div class="cert-sub">ECIH — EC-Council</div><div class="cert-date">Jun 2024 — Jun 2027 &nbsp;|&nbsp; <span style="color:#00ff41">&#9679; ACTIVE</span></div></div>
+    <div class="cert-item"><div class="cert-name">CERTIFIED NETWORK DEFENDER</div><div class="cert-sub">CND — EC-Council</div><div class="cert-date">Jun 2024 — Jun 2027 &nbsp;|&nbsp; <span style="color:#00ff41">&#9679; ACTIVE</span></div></div>
+    <div class="cert-item"><div class="cert-name">BADAN NASIONAL SERTIFIKASI PROFESI</div><div class="cert-sub">BNSP — Indonesia</div><div class="cert-date">Dec 2024 — Dec 2027 &nbsp;|&nbsp; <span style="color:#00ff41">&#9679; ACTIVE</span></div></div>
+    <div class="section-title">// EDUCATION</div>
+    <div class="cert-item" style="border-left-color:#ffcc00"><div class="cert-name" style="color:#ffcc00">S1 TEKNIK INFORMATIKA</div><div class="cert-sub" style="color:#aaa">Universitas Mercu Buana, Jakarta</div><div class="cert-date">Sept 2021 — Dec 2025 &nbsp;|&nbsp; GPA <span style="color:#ffcc00">3.68/4.00</span></div></div>
+    <div class="cert-item" style="border-left-color:#555"><div class="cert-name" style="color:#888">SMK NEGERI 17 JAKARTA</div><div class="cert-date">2018 — 2021</div></div>`;}},
+  contact:{title:'> CONTACT.SH — CONNECT',render(){return`
+    <div class="section-title">// ESTABLISH CONNECTION</div>
+    <div style="color:#aaffaa;font-size:12px;margin-bottom:16px;line-height:1.8;border-left:2px solid #00ff41;padding-left:12px">&gt; Ready to connect and collaborate.<br>&gt; Send a signal through any channel below:</div>
+    <div class="contact-item"><span class="contact-icon">&#9993;</span><span style="color:#00ff41">bagashaidar3@gmail.com</span></div>
+    <div class="contact-item"><span class="contact-icon">&#9742;</span><span style="color:#00ff41">0851-7224-1515</span></div>
+    <div class="contact-item"><span class="contact-icon">&#9671;</span><span style="color:#00aaff">@bagas.hdr (Instagram)</span></div>
+    <div class="contact-item"><span class="contact-icon">&#9670;</span><span style="color:#888">Jakarta, Indonesia</span></div>
+    <div class="section-title">// AVAILABILITY</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px">
+      <span class="tag" style="color:#00ff41;border-color:#00ff41">&#9679; AVAILABLE NOW</span>
+      <span class="tag" style="color:#00ff41;border-color:#00ff41">FULL-TIME</span>
+      <span class="tag" style="color:#00ff41;border-color:#00ff41">HYBRID / WFO</span>
+    </div>
+    <div class="section-title">// TARGET ROLES</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <span class="tag">IT Support</span><span class="tag">Software Engineer</span>
+      <span class="tag">IT QA</span><span class="tag">Cybersecurity</span><span class="tag">Technical Service</span>
+    </div>`;}}
+};
+
+function openPanel(key,label,color){
+  const pd=panelData[key]; if(!pd) return;
+  document.getElementById('panelTitle').textContent=pd.title;
+  document.getElementById('panelHeader').style.background=color;
+  document.getElementById('panelHeader').style.color='#000';
+  document.getElementById('panelBody').innerHTML=pd.render();
+  document.getElementById('panel').classList.add('active');
+  panelOpen=true;
+  spawnFX(player.x,player.y,color);
+}
+function closePanel(){document.getElementById('panel').classList.remove('active');panelOpen=false;}
+
+/* ---- GAME LOOP ---- */
+function loop(){
+  requestAnimationFrame(loop);
+  frameCount++;
+  if(!panelOpen){
+    let moving=false;
+    if(keys['ArrowRight']||keys['d']||keys['D']){player.vx=4.2;player.dir=1;moving=true;}
+    else if(keys['ArrowLeft']||keys['a']||keys['A']){player.vx=-4.2;player.dir=-1;moving=true;}
+    else player.vx*=0.72;
+    if((keys['ArrowUp']||keys[' ']||keys['w']||keys['W'])&&player.onGround){
+      player.vy=-14;player.onGround=false;
+    }
+    player.vy=Math.min(player.vy+0.6,22);
+    player.x+=player.vx/TILE;
+    player.y+=player.vy/TILE;
+    player.x=Math.max(0,Math.min(player.x,worldWidth-2));
+    player.onGround=false;
+    if(player.y>=GROUND_ROW){player.y=GROUND_ROW;player.vy=0;player.onGround=true;}
+    for(let p of platforms){
+      if(player.x+0.38>p.x&&player.x-0.38<p.x+p.w&&
+         player.y>p.y-0.18&&player.y<p.y+0.7&&player.vy>=0){
+        player.y=p.y;player.vy=0;player.onGround=true;
+      }
+    }
+    targetCamX=(player.x-W/TILE/2+0.5)*TILE;
+    targetCamX=Math.max(0,Math.min(targetCamX,(worldWidth-1)*TILE-W));
+    camX+=(targetCamX-camX)*0.12;
+    if(moving&&player.onGround){player.frameTimer++;if(player.frameTimer>5){player.frame++;player.frameTimer=0;}}
+    else if(!moving) player.frame=0;
+    const near=getNear();
+    if(!near) document.getElementById('hudSection').textContent='MOVE TO EXPLORE';
+    if(near&&(keys['Enter']||keys['e']||keys['E'])){
+      openPanel(near.data,near.label,near.color);
+      keys['Enter']=keys['e']=keys['E']=false;
+    }
+  }
+  ctx.clearRect(0,0,W,H);
+  drawBg();
+  drawBits(frameCount);
+  updateAndDrawShootingStars();
+  updateAndDrawUFOs(frameCount);
+  for(let t of trees) drawTree(t);
+  drawGround();
+  for(let p of platforms) drawPlatform(p);
+  for(let s of sections) drawSection(s, frameCount);
+  drawPlayer();
+  drawParticles();
+}
+
+/* ---- EVENTS ---- */
+document.addEventListener('keydown',e=>{
+  keys[e.key]=true;
+  if(e.key==='Escape') closePanel();
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' '].includes(e.key)) e.preventDefault();
+});
+document.addEventListener('keyup',e=>{keys[e.key]=false;});
+canvas.addEventListener('click',e=>{
+  if(panelOpen) return;
+  const r=canvas.getBoundingClientRect();
+  const mx=(e.clientX-r.left)*(W/r.width);
+  for(let s of sections){if(Math.abs(mx-(s.x*TILE-camX))<TILE*2){openPanel(s.data,s.label,s.color);return;}}
+});
+window.addEventListener('wheel',e=>{
+  if(panelOpen) return;
+  if(e.deltaY>0||e.deltaX>0){keys['ArrowRight']=true;setTimeout(()=>keys['ArrowRight']=false,160);}
+  else{keys['ArrowLeft']=true;setTimeout(()=>keys['ArrowLeft']=false,160);}
+},{passive:true});
+document.getElementById('mLeft').addEventListener('touchstart',e=>{e.preventDefault();keys['ArrowLeft']=true;},{passive:false});
+document.getElementById('mLeft').addEventListener('touchend',()=>keys['ArrowLeft']=false);
+document.getElementById('mRight').addEventListener('touchstart',e=>{e.preventDefault();keys['ArrowRight']=true;},{passive:false});
+document.getElementById('mRight').addEventListener('touchend',()=>keys['ArrowRight']=false);
+document.getElementById('mJump').addEventListener('touchstart',e=>{e.preventDefault();keys[' ']=true;},{passive:false});
+document.getElementById('mJump').addEventListener('touchend',()=>keys[' ']=false);
+let touchX=0;
+canvas.addEventListener('touchstart',e=>{touchX=e.touches[0].clientX;},{passive:true});
+canvas.addEventListener('touchmove',e=>{
+  const dx=e.touches[0].clientX-touchX;
+  if(dx>15){keys['ArrowRight']=true;keys['ArrowLeft']=false;}
+  else if(dx<-15){keys['ArrowLeft']=true;keys['ArrowRight']=false;}
+  touchX=e.touches[0].clientX;
+},{passive:true});
+canvas.addEventListener('touchend',()=>{keys['ArrowLeft']=false;keys['ArrowRight']=false;});
+document.getElementById('overlay').addEventListener('click',function(){
+  this.style.opacity='0'; this.style.transition='opacity 0.5s';
+  setTimeout(()=>this.style.display='none',500);
+  resize(); loop();
+});
+window.addEventListener('resize',resize);
+</script>
+</body>
+</html>
