@@ -4,17 +4,50 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Bagas Haidar Arhab — Interactive Portfolio</title>
+
+<!-- SEO -->
+<meta name="description" content="Bagas Haidar Arhab — Fresh Graduate Informatics Engineering, EC-Council Certified (ECIH & CND). Interactive portfolio with IT Support, Python, Cybersecurity skills.">
+<meta name="keywords" content="Bagas Haidar Arhab, IT Support, Software Engineer, Python, Cybersecurity, EC-Council, ECIH, CND, Jakarta, Portfolio">
+<meta name="author" content="Bagas Haidar Arhab">
+<meta name="robots" content="index, follow">
+
+<!-- Open Graph (WhatsApp, LinkedIn, Facebook preview) -->
+<meta property="og:title" content="Bagas Haidar Arhab — Interactive Portfolio">
+<meta property="og:description" content="Fresh Graduate IT Engineer | EC-Council Certified | Python • Cybersecurity • IT Support | Jakarta, Indonesia">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://bagashaidar.github.io/portofolio">
+<meta property="og:image" content="https://bagashaidar.github.io/portofolio/preview.png">
+
+<!-- Twitter Card -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Bagas Haidar Arhab — Interactive Portfolio">
+<meta name="twitter:description" content="Fresh Graduate IT Engineer | EC-Council Certified | Interactive Game Portfolio">
+
+<!-- Favicon (pixel art character) -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%230a0f0a'/><rect x='10' y='4' width='12' height='10' fill='%2300cc33'/><rect x='11' y='5' width='10' height='6' fill='%23001500'/><rect x='12' y='6' width='8' height='4' fill='%2300aaff'/><rect x='8' y='14' width='16' height='10' fill='%23004400'/><rect x='8' y='24' width='6' height='6' fill='%23003300'/><rect x='18' y='24' width='6' height='6' fill='%23003300'/><rect x='7' y='24' width='6' height='4' fill='%2300cc33'/><rect x='19' y='24' width='6' height='4' fill='%2300cc33'/></svg>">
+
+<!-- Font fallback if Google Fonts fails -->
+<style>
+  @font-face {
+    font-family: 'Press Start 2P';
+    font-display: swap;
+  }
+  @font-face {
+    font-family: 'Share Tech Mono';
+    font-display: swap;
+  }
+</style>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&family=Share+Tech+Mono&display=swap" crossorigin rel="stylesheet">
 <style>
   *{margin:0;padding:0;box-sizing:border-box}
   html,body{width:100%;height:100%;background:#0a0f0a;overflow:hidden}
-  body{color:#00ff41;font-family:'Share Tech Mono',monospace}
+  body{color:#00ff41;font-family:'Share Tech Mono','Courier New',Courier,monospace}
   canvas{display:block}
   #world{position:relative;width:100%;height:100vh;overflow:hidden;background:#0a0f0a}
   #gameCanvas{display:block;width:100%;height:100%}
-  #hud{position:absolute;top:0;left:0;width:100%;display:flex;justify-content:space-between;align-items:center;padding:16px 32px;background:rgba(0,0,0,0.92);border-bottom:2px solid #00ff41;font-family:'Press Start 2P',monospace;font-size:14px;color:#00ff41;z-index:10;pointer-events:none;letter-spacing:1px;}
+  #hud{position:absolute;top:0;left:0;width:100%;display:flex;justify-content:space-between;align-items:center;padding:16px 32px;background:rgba(0,0,0,0.92);border-bottom:2px solid #00ff41;font-family:'Press Start 2P','Courier New',Courier,monospace;font-size:14px;color:#00ff41;z-index:10;pointer-events:none;letter-spacing:1px;}
   .blink{animation:blink 1s step-end infinite}
   @keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
   #controls{position:absolute;bottom:20px;left:50%;transform:translateX(-50%);font-family:'Press Start 2P',monospace;font-size:9px;color:#00ff41;opacity:0.5;pointer-events:none;white-space:nowrap;animation:pulse 3s ease-in-out infinite;}
@@ -70,7 +103,7 @@
 </head>
 <body>
 <div id="overlay">
-  <div class="overlay-logo">&gt; BAGAS.EXE<br>LOADING PORTFOLIO...</div>
+  <div class="overlay-logo">&gt; BAGAS HAIDAR ARHAB.EXE<br>LOADING PORTFOLIO...</div>
   <div class="overlay-sub">INFORMATICS ENGINEER<br>EC-COUNCIL CERTIFIED // JAKARTA, INDONESIA</div>
   <div class="overlay-start">&gt;&gt; CLICK TO START &lt;&lt;</div>
   <div class="overlay-ver">v3.0.0 // 2025 EDITION</div>
@@ -102,43 +135,91 @@ const ctx = canvas.getContext('2d');
 
 const TILE = 60;
 const HUD_H = 56;
-const GROUND_ROW = 8;
-const worldWidth = 105;
+const GROUND_ROW = 8;   // ground tile row in horizontal zone
+const worldWidth = 60;  // horizontal world width (tiles)
 
-let W, H, camX = 0, targetCamX = 0;
+// Camera has TWO axes. In H-phase only camX moves. In V-phase only camY moves.
+const PHASE = {H:0, V:1};
+let phase = PHASE.H;
+let camX = 0, targetCamX = 0;
+let camY = 0, targetCamY = 0;
+let vertOffset = 0, targetVertOffset = 0;
+
+let W, H;
 let panelOpen = false, frameCount = 0;
 let particles = [];
 let keys = {};
 
-let player = { x:2.5, y:GROUND_ROW, vx:0, vy:0, onGround:true, dir:1, frame:0, frameTimer:0 };
+// player.x in tiles (horizontal), player.y in tiles from HUD top
+// In V-phase, player.vy in tiles/frame going UP (negative screen direction)
+let player = {
+  x:2.5, y:GROUND_ROW,
+  vx:0, vy:0,
+  onGround:true, dir:1, frame:0, frameTimer:0
+};
 
-const sections = [
-  {x:6,  label:'ABOUT ME',   color:'#00ff41', icon:'[?]', data:'about'},
-  {x:21, label:'SKILLS',     color:'#00aaff', icon:'[S]', data:'skills'},
-  {x:36, label:'EXPERIENCE', color:'#ffcc00', icon:'[E]', data:'experience'},
-  {x:51, label:'PROJECTS',   color:'#ff6600', icon:'[P]', data:'projects'},
-  {x:66, label:'CERTS',      color:'#ff00ff', icon:'[C]', data:'certs'},
-  {x:81, label:'CONTACT',    color:'#aaffaa', icon:'[@]', data:'contact'},
+// ── ELEVATOR ──────────────────────────────────
+// Fixed X position where elevator shaft is
+const ELEV_X = 48;          // tile X
+const ELEV_SHAFT_TOP = -36; // tile Y (negative = above ground, in V-zone)
+// Elevator car
+let elev = {
+  y: GROUND_ROW, prevY: GROUND_ROW,
+  state: 'idle', dir: -1,
+  playerOn: false, stopTimer: 0,
+  speed: 0.08,
+};
+
+// ── SECTIONS ────────────────────────────────
+// Ground sections: x in tiles, y=GROUND_ROW (floor)
+const sectionsGround = [
+  {x:6,  y:GROUND_ROW, label:'ABOUT ME',   color:'#00ff41', icon:'[?]', data:'about'},
+  {x:21, y:GROUND_ROW, label:'SKILLS',     color:'#00aaff', icon:'[S]', data:'skills'},
+  {x:36, y:GROUND_ROW, label:'EXPERIENCE', color:'#ffcc00', icon:'[E]', data:'experience'},
 ];
 
+// Sky sections: all at X=ELEV_X, stacked vertically upward
+// y is tile-row (negative = above ground in V-zone)
+const SKY_X = ELEV_X;
+const sectionsVertical = [
+  {x:SKY_X, y:GROUND_ROW-12, label:'PROJECTS', color:'#ff6600', icon:'[P]', data:'projects'},
+  {x:SKY_X, y:GROUND_ROW-24, label:'CERTS',    color:'#ff00ff', icon:'[C]', data:'certs'},
+  {x:SKY_X, y:GROUND_ROW-36, label:'CONTACT',  color:'#aaffaa', icon:'[@]', data:'contact'},
+];
+
+const sections = [...sectionsGround, ...sectionsVertical];
+
+// ── PLATFORMS ───────────────────────────────
 const platforms = [
-  {x:4,y:GROUND_ROW-3,w:3},{x:9,y:GROUND_ROW-2,w:3},{x:14,y:GROUND_ROW-4,w:3},
-  {x:19,y:GROUND_ROW-3,w:3},{x:25,y:GROUND_ROW-2,w:3},{x:30,y:GROUND_ROW-4,w:3},
-  {x:34,y:GROUND_ROW-3,w:3},{x:39,y:GROUND_ROW-2,w:3},{x:44,y:GROUND_ROW-4,w:3},
-  {x:49,y:GROUND_ROW-3,w:3},{x:55,y:GROUND_ROW-2,w:3},{x:60,y:GROUND_ROW-4,w:3},
-  {x:64,y:GROUND_ROW-3,w:3},{x:69,y:GROUND_ROW-2,w:3},{x:74,y:GROUND_ROW-4,w:3},
-  {x:79,y:GROUND_ROW-3,w:3},{x:85,y:GROUND_ROW-2,w:3},{x:90,y:GROUND_ROW-4,w:3},
+  // decorative ground platforms
+  {x:4,  y:GROUND_ROW-3, w:3},
+  {x:10, y:GROUND_ROW-2, w:3},
+  {x:15, y:GROUND_ROW-4, w:3},
+  {x:20, y:GROUND_ROW-3, w:3},
+  {x:26, y:GROUND_ROW-2, w:3},
+  {x:31, y:GROUND_ROW-4, w:3},
+  {x:37, y:GROUND_ROW-3, w:3},
+  {x:43, y:GROUND_ROW-2, w:3},
+  // landing platforms beside each sky section (right side, for dismount)
+  {x:SKY_X+2, y:GROUND_ROW-12, w:4},
+  {x:SKY_X+2, y:GROUND_ROW-24, w:4},
+  {x:SKY_X+2, y:GROUND_ROW-36, w:4},
+  // descent staircase (right of shaft)
+  {x:SKY_X+7, y:GROUND_ROW-30, w:3},
+  {x:SKY_X+7, y:GROUND_ROW-22, w:3},
+  {x:SKY_X+7, y:GROUND_ROW-14, w:3},
+  {x:SKY_X+7, y:GROUND_ROW-6,  w:3},
 ];
 
-const trees = [3,8,13,18,24,29,33,38,43,48,54,59,63,68,73,78,84,89,94,99];
+const trees = [3,8,13,18,24,29,33,40,44];
 
-const bits = Array.from({length:320}, (_,i) => ({
+const bits = Array.from({length:150}, (_,i) => ({
   x: Math.random()*worldWidth*TILE,
-  y: HUD_H + Math.random()*(GROUND_ROW-1.2)*TILE,
-  sz: i<140?1 : i<240?2 : i<290?3 : 4,
+  y: HUD_H + Math.random()*(GROUND_ROW-1.2)*TILE - (i>160?Math.random()*40*TILE:0),
+  sz: i<80?1 : i<130?2 : i<148?3 : 4,
   phase: Math.random()*Math.PI*2,
   spd: 0.015+Math.random()*0.055,
-  bright: i<140?0.4 : i<240?0.65 : i<290?0.85 : 1.0,
+  bright: i<80?0.4 : i<130?0.65 : i<148?0.85 : 1.0,
   color: i%11===0?'170,255,255' : i%8===0?'255,255,160' : '0,255,65'
 }));
 
@@ -160,19 +241,18 @@ function spawnShootingStar(){
   });
 }
 
-// UFOs
+// Ambient UFOs (decorative, fly across sky)
 const ufos = [];
 let ufoTimer = 0;
 
 function spawnUFO(){
   const worldPx = worldWidth * TILE;
   const fromRight = Math.random() > 0.5;
-  const w = 52 + Math.random() * 32;
   ufos.push({
     wx: fromRight ? worldPx + 200 : -200,
     y: HUD_H + 24 + Math.random() * (GROUND_ROW - 3) * TILE * 0.48,
     spd: (2.8 + Math.random() * 2.4) * (fromRight ? -1 : 1),
-    w,
+    w: 52 + Math.random() * 32,
     phase: Math.random() * Math.PI * 2,
     beamT: 0,
     col: Math.random() > 0.5 ? '0,255,65' : '120,200,255',
@@ -181,17 +261,25 @@ function spawnUFO(){
 }
 
 function resize(){ W=window.innerWidth; H=window.innerHeight; canvas.width=W; canvas.height=H; }
-function ty2py(ty){ return HUD_H+ty*TILE; }
-function groundPY(){ return ty2py(GROUND_ROW); }
+
+// Convert tile coords → screen pixels
+// In H-phase: camY=0 so ground stays at bottom
+// In V-phase: camY scrolls up (positive = world shifted down on screen = we see higher)
+function tx2sx(tx){ return tx*TILE - camX; }
+function ty2sy(ty){ return HUD_H + ty*TILE - vertOffset; }
+function groundSY(){ return ty2sy(GROUND_ROW); }
 
 function getNear(){
-  let best=null,minD=999;
-  for(let s of sections){const d=Math.abs(player.x-s.x);if(d<minD){minD=d;best=s;}}
+  let best=null, minD=999;
+  for(let s of sections){
+    const d=Math.abs(player.x-s.x);
+    if(d<minD){minD=d;best=s;}
+  }
   return minD<2.5?best:null;
 }
 
 function spawnFX(wx,wy,color){
-  const px=wx*TILE-camX, py=ty2py(wy);
+  const px=wx*TILE-camX, py=HUD_H+wy*TILE-vertOffset;
   for(let i=0;i<12;i++) particles.push({x:px,y:py,vx:(Math.random()-0.5)*6,vy:-Math.random()*5-2,life:50,max:50,color,sz:Math.random()*4+1});
 }
 
@@ -230,8 +318,8 @@ function drawBgAbout(sx, gy, T, alpha){
 // SKILLS — radar chart / skill bars pixel style
 function drawBgSkills(sx, gy, T, alpha, t){
   ctx.save(); ctx.globalAlpha=alpha;
-  const cx=sx, cy=gy-T*2.2;
-  const r=T*.7;
+  const cx=sx, cy=gy-T*3.0;
+  const r=T*.65;
   // radar hexagon
   ctx.strokeStyle='#003388'; ctx.lineWidth=1;
   for(let ring=1;ring<=3;ring++){
@@ -488,7 +576,7 @@ function updateAndDrawShootingStars(){
     s.wx += Math.cos(s.angle) * s.spd;
     s.y  += Math.sin(s.angle) * s.spd;
     s.life -= s.decay;
-    if(s.life<=0 || s.y>groundPY()-20){ shootingStars.splice(i,1); continue; }
+    if(s.life<=0 || s.y>groundSY()-20){ shootingStars.splice(i,1); continue; }
     const sx = s.wx - camX;
     if(sx < -s.len-20 || sx > W+s.len+20) continue;
     // draw tail gradient
@@ -588,9 +676,9 @@ function updateAndDrawUFOs(t){
 }
 
 function drawTree(tx){
-  const x=tx*TILE-camX;
+  const x=tx2sx(tx);
   if(x<-TILE*4||x>W+TILE*3) return;
-  const gy=groundPY(); const T=TILE;
+  const gy=groundSY(); const T=TILE;
   ctx.fillStyle='#1a3300'; ctx.fillRect(x+T*.36,gy-T*1.5,T*.28,T*1.5);
   ctx.fillStyle='#0d1a00'; ctx.fillRect(x+T*.43,gy-T*1.4,T*.14,T*1.4);
   ctx.fillStyle='#003300'; ctx.fillRect(x+T*.04,gy-T*2.7,T*.92,T*1.2);
@@ -603,9 +691,11 @@ function drawTree(tx){
 }
 
 function drawGround(){
-  const gy=groundPY(); const off=Math.floor(camX/TILE);
+  const gy=groundSY(); const off=Math.floor(camX/TILE);
   for(let i=off-1;i<off+Math.ceil(W/TILE)+2;i++){
     const gx=i*TILE-camX;
+    const groundVisible = gy>HUD_H-TILE && gy<H+TILE*3;
+    if(!groundVisible){ ctx.fillStyle='#060d06'; ctx.fillRect(gx,H-2,TILE,4); continue; }
     ctx.fillStyle='#0d1a0d'; ctx.fillRect(gx,gy,TILE,TILE);
     ctx.fillStyle='#00aa33'; ctx.fillRect(gx,gy,TILE,5);
     ctx.fillStyle='#007722'; ctx.fillRect(gx,gy+5,TILE,7);
@@ -618,9 +708,9 @@ function drawGround(){
 }
 
 function drawPlatform(p){
-  const px=p.x*TILE-camX;
+  const px=tx2sx(p.x);
   if(px<-p.w*TILE-TILE||px>W+TILE) return;
-  const py=ty2py(p.y),pw=p.w*TILE,ph=TILE*0.4;
+  const py=ty2sy(p.y),pw=p.w*TILE,ph=TILE*0.4;
   ctx.fillStyle='#0d1a0d'; ctx.fillRect(px,py,pw,ph);
   ctx.fillStyle='#00aa33'; ctx.fillRect(px,py,pw,5);
   ctx.fillStyle='#007722'; ctx.fillRect(px,py+5,pw,7);
@@ -629,11 +719,13 @@ function drawPlatform(p){
 }
 
 function drawSection(s, t){
-  const sx=s.x*TILE-camX;
+  const sx = tx2sx(s.x);
+  const gy = ty2sy(s.y);   // tower base (ground level for this section)
   if(sx<-TILE*6||sx>W+TILE*6) return;
-  const gy=groundPY();
-  const near=Math.abs(player.x-s.x)<2.8;
-  const T=TILE;
+  if(gy<HUD_H-TILE*10||gy>H+TILE*3) return;
+  const T = TILE;
+
+  const near = Math.abs(player.x-s.x)<2.8 && Math.abs(player.y-s.y)<3.5;
   const towerW=T*1.7, towerH=T*4.0;
   const towerLeft=sx-towerW/2, towerTop=gy-towerH;
 
@@ -642,18 +734,20 @@ function drawSection(s, t){
   ctx.fillRect(towerLeft, towerTop, towerW, towerH);
 
   // ---- THEMED BACKGROUND ART ----
-  // clip to tower interior
   ctx.save();
   ctx.beginPath();
   ctx.rect(towerLeft+2, towerTop+2, towerW-4, towerH-4);
   ctx.clip();
   const bgAlpha = near ? 0.85 : 0.45;
-  if(s.data==='about')      drawBgAbout(sx, gy, T, bgAlpha);
-  if(s.data==='skills')     drawBgSkills(sx, gy, T, bgAlpha, t);
-  if(s.data==='experience') drawBgExperience(sx, gy, T, bgAlpha);
-  if(s.data==='projects')   drawBgProjects(sx, gy, T, bgAlpha, t);
-  if(s.data==='certs')      drawBgCerts(sx, gy, T, bgAlpha, t);
-  if(s.data==='contact')    drawBgContact(sx, gy, T, bgAlpha, t);
+  // Only draw bg art for sections near screen center (perf)
+  if(Math.abs(sx-W/2)<W*0.7){
+    if(s.data==='about')      drawBgAbout(sx, gy, T, bgAlpha);
+    if(s.data==='skills')     drawBgSkills(sx, gy, T, bgAlpha, t);
+    if(s.data==='experience') drawBgExperience(sx, gy, T, bgAlpha);
+    if(s.data==='projects')   drawBgProjects(sx, gy, T, bgAlpha, t);
+    if(s.data==='certs')      drawBgCerts(sx, gy, T, bgAlpha, t);
+    if(s.data==='contact')    drawBgContact(sx, gy, T, bgAlpha, t);
+  }
   ctx.restore();
 
   // ---- TOWER BORDER ----
@@ -667,7 +761,6 @@ function drawSection(s, t){
   ctx.fillRect(doorLeft, doorTop, doorW, doorH);
   ctx.strokeStyle=near?s.color:'#003300'; ctx.lineWidth=1.5;
   ctx.strokeRect(doorLeft, doorTop, doorW, doorH);
-  // door arch
   ctx.beginPath(); ctx.arc(sx, doorTop, doorW/2, Math.PI, 0, false);
   ctx.fillStyle=near?s.color+'66':'rgba(0,0,0,0.6)'; ctx.fill();
   ctx.strokeStyle=near?s.color:'#003300'; ctx.stroke();
@@ -678,13 +771,14 @@ function drawSection(s, t){
   ctx.strokeStyle=near?s.color:'#003300'; ctx.lineWidth=near?2:1;
   ctx.strokeRect(sx-T*1.0, gy-T*5.1, T*2.0, T*1.1);
   ctx.fillStyle=near?s.color:'#006600';
-  ctx.font=`${Math.round(T*.3)}px "Press Start 2P"`;
-  ctx.textAlign='center';
-  ctx.fillText(s.icon, sx, gy-T*4.22);
+  ctx.font=`${Math.round(T*.26)}px "Press Start 2P"`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(s.icon, sx, gy-T*4.78);
   const lbl=s.label.length>9?s.label.substring(0,9):s.label;
   ctx.fillStyle=near?'#ffffff':'#555';
-  ctx.font=`${Math.round(T*.18)}px "Press Start 2P"`;
-  ctx.fillText(lbl, sx, gy-T*4.0);
+  ctx.font=`${Math.round(T*.15)}px "Press Start 2P"`;
+  ctx.fillText(lbl, sx, gy-T*4.35);
+  ctx.textBaseline='alphabetic';
 
   // ---- ANTENNA ----
   ctx.strokeStyle=near?s.color:'#003300'; ctx.lineWidth=3;
@@ -704,8 +798,8 @@ function drawSection(s, t){
 }
 
 function drawPlayer(){
-  const footY=ty2py(player.y);
-  const cx=player.x*TILE-camX;
+  const footY=ty2sy(player.y);
+  const cx=tx2sx(player.x);
   if(cx<-TILE*2||cx>W+TILE*2) return;
   ctx.save();
   ctx.translate(cx, footY);
@@ -775,23 +869,26 @@ const panelData = {
     <div class="data-line"><span class="data-key">INSTAGRAM:</span><span class="data-val">@bagas.hdr</span></div>
     <div class="section-title">// MISSION BRIEF</div>
     <div style="color:#aaffaa;font-size:12px;line-height:1.9;border-left:2px solid #00ff41;padding-left:12px">
-      Fresh Graduate in Informatics Engineering with a strong interest in IT Support, networking, and cybersecurity.
-      Certified by EC-Council (ECIH &amp; CND). Persistent, sociable fast-learner with hands-on experience in
-      technical support and administrative roles. Ready to contribute as a reliable and adaptable IT professional.
+      Informatics Engineering graduate (Class of 2021) from Mercu Buana University with a strong interest in Software
+      Programming, IT Support, and Cybersecurity. Equipped with solid skills in Software Programming and
+      Informatics Engineering, including hands-on experience in Python, PHP, web development, and system
+      automation. A persistent, friendly, and fast learner with hands-on experience in technical and administrative
+      support roles. Certified by EC-Council (ECIH & CND) and ready to contribute as a reliable and adaptable IT
+      professional.
     </div>
     <div class="section-title">// TARGET ROLES</div>
     <div style="display:flex;flex-wrap:wrap;gap:6px">
-      <span class="tag">IT Support</span><span class="tag">Software Engineer</span>
+      <span class="tag">Software Engineer</span><span class="tag">IT Support</span>
       <span class="tag">IT QA</span><span class="tag">Cybersecurity</span>
       <span class="tag">Technical Service</span><span class="tag">Network Defender</span>
     </div>`;}},
   skills:{title:'> ACCESS: SKILLS.DAT',render(){
     const t=[
-      {name:'IT Support',pct:90,level:'EXPERT'},{name:'Python',pct:80,level:'ADVANCED'},
-      {name:'PHP / Laravel',pct:75,level:'ADVANCED'},{name:'HTML / Web Dev',pct:80,level:'ADVANCED'},
-      {name:'Web Automation',pct:80,level:'ADVANCED'},{name:'Cybersecurity',pct:75,level:'ADVANCED'},
-      {name:'Burp Suite',pct:65,level:'INTERMEDIATE'},{name:'Networking',pct:70,level:'INTERMEDIATE'},
-      {name:'Data Analysis',pct:65,level:'INTERMEDIATE'},{name:'UI/UX Design',pct:60,level:'INTERMEDIATE'},
+      {name:'IT Support',pct:70,level:'ADVANCED'},{name:'Python',pct:65,level:'ADVANCED'},
+      {name:'PHP / Laravel',pct:55,level:'ADVANCED'},{name:'HTML / Web Dev',pct:55,level:'ADVANCED'},
+      {name:'Web Automation',pct:65,level:'ADVANCED'},{name:'Cybersecurity',pct:55,level:'ADVANCED'},
+      {name:'Burp Suite',pct:65,level:'INTERMEDIATE'},{name:'Networking',pct:45,level:'INTERMEDIATE'},
+      {name:'Data Analysis',pct:65,level:'INTERMEDIATE'},{name:'UI/UX Design',pct:65,level:'INTERMEDIATE'},
     ];
     let h='<div class="section-title">// TECHNICAL SKILLS</div>';
     for(let s of t) h+=`<div class="skill-bar"><span class="skill-name">${s.name}</span><div class="skill-track"><div class="skill-fill ${s.pct>=80?'':'mid'}" style="width:${s.pct}%"></div></div><span class="skill-level">${s.level}</span></div>`;
@@ -878,49 +975,213 @@ function openPanel(key,label,color){
 function closePanel(){document.getElementById('panel').classList.remove('active');panelOpen=false;}
 
 /* ---- GAME LOOP ---- */
+function drawElevator(){
+  const T=TILE;
+  const ex = tx2sx(ELEV_X);
+  const shaftTop = ty2sy(GROUND_ROW-38);
+  const shaftBot = ty2sy(GROUND_ROW);
+
+  // shaft — energy beam/tractor beam line
+  const beamAlpha = 0.15 + 0.08*Math.sin(frameCount*0.08);
+  ctx.strokeStyle=`rgba(0,200,255,${beamAlpha})`; ctx.lineWidth=3;
+  ctx.setLineDash([8,6]);
+  ctx.beginPath(); ctx.moveTo(ex,shaftTop); ctx.lineTo(ex,shaftBot); ctx.stroke();
+  ctx.setLineDash([]);
+  // side rails faint
+  ctx.strokeStyle='rgba(0,80,120,0.3)'; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(ex-T*.08,shaftTop); ctx.lineTo(ex-T*.08,shaftBot); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(ex+T*.08,shaftTop); ctx.lineTo(ex+T*.08,shaftBot); ctx.stroke();
+
+  // UFO car
+  // UFO position: at ground when idle, at player feet when riding
+  const ufoBaseY = elev.playerOn ? ty2sy(elev.y + 0.4) : ty2sy(GROUND_ROW - 0.6);
+  const ufoY = ufoBaseY;
+  const hw = T*0.9; // half-width of saucer
+  const nearElev = Math.abs(player.x-ELEV_X)<2.5 && player.y>=GROUND_ROW-0.8 && elev.state==='idle';
+  const lp = 0.5+0.5*Math.sin(frameCount*0.1);
+  const col = elev.playerOn ? '0,255,200' : nearElev ? '0,255,65' : '0,160,80';
+
+  ctx.save();
+  ctx.translate(ex, ufoY);
+
+  // tractor beam downward when near or riding
+  if(nearElev || elev.playerOn){
+    const bh = shaftBot - ufoY;
+    ctx.beginPath();
+    ctx.moveTo(-hw*0.28, hw*0.18);
+    ctx.lineTo(-hw*0.55, bh);
+    ctx.lineTo( hw*0.55, bh);
+    ctx.lineTo( hw*0.28, hw*0.18);
+    ctx.closePath();
+    ctx.fillStyle=`rgba(${col},0.18)`; ctx.fill();
+  }
+
+  // dome top
+  ctx.fillStyle=`rgba(${col},0.13)`;
+  ctx.beginPath(); ctx.ellipse(0,-hw*0.22,hw*0.42,hw*0.3,0,Math.PI,0); ctx.fill();
+  ctx.strokeStyle=`rgba(${col},0.9)`; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.ellipse(0,-hw*0.22,hw*0.42,hw*0.3,0,Math.PI,0); ctx.stroke();
+  // dome window
+  ctx.fillStyle=`rgba(0,180,255,0.25)`;
+  ctx.beginPath(); ctx.ellipse(0,-hw*0.28,hw*0.22,hw*0.16,0,Math.PI,0); ctx.fill();
+
+  // main saucer disc
+  ctx.fillStyle=`rgba(${col},0.18)`;
+  ctx.beginPath(); ctx.ellipse(0,0,hw*0.56,hw*0.2,0,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle=`rgba(${col},0.95)`; ctx.lineWidth=2.5;
+  ctx.beginPath(); ctx.ellipse(0,0,hw*0.56,hw*0.2,0,0,Math.PI*2); ctx.stroke();
+  // inner ring
+  ctx.strokeStyle=`rgba(${col},0.4)`; ctx.lineWidth=1;
+  ctx.beginPath(); ctx.ellipse(0,0,hw*0.3,hw*0.1,0,0,Math.PI*2); ctx.stroke();
+
+  // spinning lights
+  for(let l=0;l<6;l++){
+    const la=(l/6)*Math.PI*2+frameCount*0.07;
+    const on=((l+Math.floor(frameCount*0.1))%6)<3;
+    ctx.fillStyle=`rgba(${col},${on?0.95:0.15})`;
+    ctx.beginPath(); ctx.arc(Math.cos(la)*hw*0.4,Math.sin(la)*hw*0.15,3.5,0,Math.PI*2); ctx.fill();
+  }
+
+  // engine glow bottom
+  ctx.fillStyle=`rgba(${col},${0.2+0.2*lp})`;
+  ctx.beginPath(); ctx.ellipse(0,hw*0.12,hw*0.18,hw*0.07,0,0,Math.PI*2); ctx.fill();
+
+  ctx.restore();
+
+  // prompt & controls
+  if(nearElev){
+    ctx.fillStyle='#ffcc00';
+    ctx.font=`${Math.round(T*.16)}px "Press Start 2P"`;
+    ctx.textAlign='center';
+    ctx.fillText('[ ↑ RIDE ]', ex, ufoY-hw-T*.4);
+    document.getElementById('hudSection').textContent='↑ RIDE UFO ELEVATOR';
+  }
+  if(elev.playerOn){
+    ctx.fillStyle='rgba(0,255,200,0.9)';
+    ctx.font=`${Math.round(T*.13)}px "Press Start 2P"`;
+    ctx.textAlign='center';
+    ctx.fillText('↑↓ FLY  ← → EXIT', ex, ufoY-hw-T*.5);
+  }
+}
+
+
+function getNearSection(){
+  let best=null, minD=999;
+  for(let s of sections){
+    const dx=Math.abs(player.x-s.x);
+    const dy=Math.abs(player.y-s.y);
+    const d=Math.sqrt(dx*dx+dy*dy);
+    if(d<minD){minD=d;best=s;}
+  }
+  return minD<3?best:null;
+}
+
 function loop(){
   requestAnimationFrame(loop);
   frameCount++;
   if(!panelOpen){
-    let moving=false;
-    if(keys['ArrowRight']||keys['d']||keys['D']){player.vx=4.2;player.dir=1;moving=true;}
-    else if(keys['ArrowLeft']||keys['a']||keys['A']){player.vx=-4.2;player.dir=-1;moving=true;}
-    else player.vx*=0.72;
-    if((keys['ArrowUp']||keys[' ']||keys['w']||keys['W'])&&player.onGround){
-      player.vy=-14;player.onGround=false;
-    }
-    player.vy=Math.min(player.vy+0.6,22);
-    player.x+=player.vx/TILE;
-    player.y+=player.vy/TILE;
-    player.x=Math.max(0,Math.min(player.x,worldWidth-2));
-    player.onGround=false;
-    if(player.y>=GROUND_ROW){player.y=GROUND_ROW;player.vy=0;player.onGround=true;}
-    for(let p of platforms){
-      if(player.x+0.38>p.x&&player.x-0.38<p.x+p.w&&
-         player.y>p.y-0.18&&player.y<p.y+0.7&&player.vy>=0){
-        player.y=p.y;player.vy=0;player.onGround=true;
+    // ── ELEVATOR MODE ──
+    if(elev.playerOn){
+      const SPD=0.5;
+      if(keys['ArrowUp']||keys['w']||keys['W']) elev.y-=SPD;
+      if(keys['ArrowDown']||keys['s']||keys['S']) elev.y+=SPD;
+      const TOP=sectionsVertical[sectionsVertical.length-1].y;
+      if(elev.y<TOP) elev.y=TOP;
+      if(elev.y>=GROUND_ROW){
+        elev.y=GROUND_ROW; elev.playerOn=false; elev.state='idle';
+        phase=PHASE.H; player.y=GROUND_ROW; player.onGround=true;
+      }
+      player.x=ELEV_X; player.y=elev.y + 0.35; // feet on UFO disc
+      player.vx=0; player.vy=0; player.onGround=true;
+      if(keys['ArrowLeft']||keys['ArrowRight']||keys['a']||keys['d']||keys['A']||keys['D']){
+        elev.playerOn=false; elev.state='exited';
+        player.y=elev.y; player.onGround=true;
+      }
+
+    } else {
+      // ── NORMAL PHYSICS ──
+      let moving=false;
+      if(keys['ArrowRight']||keys['d']||keys['D']){player.vx=4.2;player.dir=1;moving=true;}
+      else if(keys['ArrowLeft']||keys['a']||keys['A']){player.vx=-4.2;player.dir=-1;moving=true;}
+      else player.vx*=0.72;
+
+      // check if near elevator shaft
+      const onShaft=Math.abs(player.x-ELEV_X)<2.5 && player.y>=GROUND_ROW-0.5 && elev.state==='idle';
+
+      // BOARD elevator
+      if(onShaft && (keys['ArrowUp']||keys['w']||keys['W'])){
+        elev.playerOn=true; elev.state='onboard'; phase=PHASE.V; elev.y=GROUND_ROW;
+
+      } else {
+        // JUMP (only when NOT boarding elevator)
+        if((keys['ArrowUp']||keys[' ']||keys['w']||keys['W'])&&player.onGround){
+          player.vy=-14; player.onGround=false;
+        }
+      }
+
+      player.vy=Math.min(player.vy+0.6,22);
+      player.x+=player.vx/TILE; player.y+=player.vy/TILE;
+      player.x=Math.max(0,Math.min(player.x,worldWidth-1));
+      player.onGround=false;
+
+      if(player.y>=GROUND_ROW){
+        player.y=GROUND_ROW; player.vy=0; player.onGround=true;
+        if(phase===PHASE.V){phase=PHASE.H; elev.state='idle'; elev.y=GROUND_ROW;}
+      }
+      for(let p of platforms){
+        if(player.x+0.38>p.x&&player.x-0.38<p.x+p.w&&
+           player.y>p.y-0.18&&player.y<p.y+0.6&&player.vy>=0){
+          player.y=p.y; player.vy=0; player.onGround=true;
+        }
+      }
+      if(moving&&player.onGround){player.frameTimer++;if(player.frameTimer>5){player.frame++;player.frameTimer=0;}}
+      else if(!moving) player.frame=0;
+
+      // RE-BOARD after exiting sideways
+      if(elev.state==='exited'){
+        const back=Math.abs(player.x-ELEV_X)<1.5&&Math.abs(player.y-elev.y)<0.8;
+        if(back&&(keys['ArrowUp']||keys['ArrowDown']||keys['w']||keys['s'])){
+          elev.playerOn=true; elev.state='onboard';
+        }
+        if(player.y>=GROUND_ROW){phase=PHASE.H; elev.state='idle'; elev.y=GROUND_ROW;}
       }
     }
-    targetCamX=(player.x-W/TILE/2+0.5)*TILE;
-    targetCamX=Math.max(0,Math.min(targetCamX,(worldWidth-1)*TILE-W));
-    camX+=(targetCamX-camX)*0.12;
-    if(moving&&player.onGround){player.frameTimer++;if(player.frameTimer>5){player.frame++;player.frameTimer=0;}}
-    else if(!moving) player.frame=0;
-    const near=getNear();
-    if(!near) document.getElementById('hudSection').textContent='MOVE TO EXPLORE';
+
+    // --- CAMERA ---
+    // vertOffset always follows player vertical position
+    // when player at ground (y=GROUND_ROW), offset=0; going up = negative = shift canvas up
+    targetVertOffset = (player.y - GROUND_ROW) * TILE;
+
+    if(elev.playerOn || phase===PHASE.V){
+      // vertical mode: lock X on elevator
+      targetCamX = Math.max(0, (ELEV_X - W/TILE/2)*TILE);
+    } else {
+      // horizontal mode
+      targetCamX=(player.x - W/TILE/2 + 0.5)*TILE;
+      targetCamX=Math.max(0, Math.min(targetCamX, (worldWidth-1)*TILE - W));
+    }
+    camX += (targetCamX - camX)*0.12;
+    vertOffset += (targetVertOffset - vertOffset)*0.12;
+
+    // --- SECTION INTERACT ---
+    const near=getNearSection();
+    if(!near && !elev.playerOn) document.getElementById('hudSection').textContent='MOVE TO EXPLORE';
     if(near&&(keys['Enter']||keys['e']||keys['E'])){
       openPanel(near.data,near.label,near.color);
       keys['Enter']=keys['e']=keys['E']=false;
     }
   }
+
+  // --- RENDER ---
   ctx.clearRect(0,0,W,H);
+
   drawBg();
   drawBits(frameCount);
   updateAndDrawShootingStars();
-  updateAndDrawUFOs(frameCount);
   for(let t of trees) drawTree(t);
   drawGround();
   for(let p of platforms) drawPlatform(p);
+  drawElevator();
   for(let s of sections) drawSection(s, frameCount);
   drawPlayer();
   drawParticles();
@@ -937,7 +1198,7 @@ canvas.addEventListener('click',e=>{
   if(panelOpen) return;
   const r=canvas.getBoundingClientRect();
   const mx=(e.clientX-r.left)*(W/r.width);
-  for(let s of sections){if(Math.abs(mx-(s.x*TILE-camX))<TILE*2){openPanel(s.data,s.label,s.color);return;}}
+  for(let s of sections){if(Math.abs(mx-tx2sx(s.x))<TILE*2){openPanel(s.data,s.label,s.color);return;}}
 });
 window.addEventListener('wheel',e=>{
   if(panelOpen) return;
@@ -962,7 +1223,11 @@ canvas.addEventListener('touchend',()=>{keys['ArrowLeft']=false;keys['ArrowRight
 document.getElementById('overlay').addEventListener('click',function(){
   this.style.opacity='0'; this.style.transition='opacity 0.5s';
   setTimeout(()=>this.style.display='none',500);
-  resize(); loop();
+  resize();
+  // Init camY so ground appears at ~75% down screen
+  vertOffset = 0;
+  targetVertOffset = 0;
+  loop();
 });
 window.addEventListener('resize',resize);
 </script>
